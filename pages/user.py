@@ -6,6 +6,8 @@ import numpy as np
 import pickle
 from deepctr_torch.models import DeepFM
 from sklearn.preprocessing import LabelEncoder
+import requests
+from bs4 import BeautifulSoup
 
 dash.register_page(__name__, name='User Page', path='/UserPage')
 
@@ -23,7 +25,23 @@ def split(x):
             key2index[key] = len(key2index) + 1
     return list(map(lambda x: key2index[x], key_ans))
 
-
+def scrape_movie_poster(movie_title):
+    search_url = f"https://www.imdb.com/find?q={movie_title}&s=tt&ttype=ft&ref_=fn_ft"
+    response = requests.get(search_url)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        result_link = soup.find('td', class_='result_text').find('a')['href']
+        movie_url = f"https://www.imdb.com{result_link}"
+        movie_response = requests.get(movie_url)
+        if movie_response.status_code == 200:
+            movie_soup = BeautifulSoup(movie_response.content, 'html.parser')
+            poster_element = movie_soup.find('div', class_='poster').find('img')
+            poster_url = poster_element['src']
+            return poster_url
+        else:
+            print(f"Failed to fetch movie page: {movie_url}")
+    else:
+        print(f"Failed to fetch search page: {search_url}")
 def user_recommends(user_id):
     obs = {}
 
@@ -300,7 +318,6 @@ layout = html.Div([dbc.Container([
 
 
 @callback(
-
     Output(component_id='predict_cards', component_property='children'),
     Output(component_id='watchlist_cards', component_property='children'),
     Input(component_id='submit', component_property='n_clicks'),
@@ -311,99 +328,106 @@ def show(n_clicks, userid, k):
     if n_clicks is None or n_clicks == 0:
         # If no click event or initial load, return the current watchlist cards
         return dash.no_update
+
+    # Fetch the list of movies the user has rated
     item_list = user_rated_movies(userid)
     n = len(item_list)
-    new_watchlist_cards = [
-        dbc.Card(
-            className="mb-3",  # Added margin bottom class
-            style={"height": '250px',"maxWidth": "470px", "backgroundColor": "#1f1f29", "borderRadius": "10px",
-                   **(card_margin_right if i < 2 else {})},  # Added border radius and right margin
-            children=[
-                dbc.CardBody(
-                    [
-                        html.Div(
-                            className="g-0 d-flex",
-                            children=[
-                                dbc.Col(
-                                    html.Img(
-                                        src="/assets/coco.jpg",
-                                        className="img-fluid rounded-start",
 
+    # Generate cards for the user's watchlist
+    new_watchlist_cards = []
+    for i in range(n):
+        movie_info = item_list[i]
+        poster_url = scrape_movie_poster(movie_info[1])
+        new_watchlist_cards.append(
+            dbc.Card(
+                className="mb-3",
+                style={"height": '250px', "maxWidth": "470px", "backgroundColor": "#1f1f29", "borderRadius": "10px",
+                       **(card_margin_right if i < 2 else {})},
+                children=[
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                className="g-0 d-flex",
+                                children=[
+                                    dbc.Col(
+                                        html.Img(
+                                            src=poster_url,
+                                            className="img-fluid rounded-start",
+                                        ),
+                                        className="col-md-4"
                                     ),
-                                    className="col-md-4"
-                                ),
-                                dbc.Col(
-                                    dbc.CardBody(
-                                        [
-                                            html.H4(
-                                                item_list[i][1],
-                                                className="card-title mb-3",
-                                                style={"color": "white", "white-space": "pre-wrap"}
-
-                                            ),
-                                            html.P([
-                                                html.I(className="fa fa-star text-warning md-5",
-                                                       style={"color": "gold"}),
-                                                f"  {item_list[i][3]}"
-                                            ], style={'color': '#F4BD61'}),
-                                            html.P([
-                                                f"{item_list[i][2]}"
-                                            ], style={'color': '#636667', 'font-size': '18px'})
-                                        ]
-                                    ),
-                                    className="col-md-8"
-                                )
-                            ]
-                        )
-                    ]
-                )
-            ]
+                                    dbc.Col(
+                                        dbc.CardBody(
+                                            [
+                                                html.H4(
+                                                    movie_info[1],
+                                                    className="card-title mb-3",
+                                                    style={"color": "white", "white-space": "pre-wrap"}
+                                                ),
+                                                html.P([
+                                                    html.I(className="fa fa-star text-warning md-5",
+                                                           style={"color": "gold"}),
+                                                    f"  {movie_info[3]}"
+                                                ], style={'color': '#F4BD61'}),
+                                                html.P([
+                                                    movie_info[2]
+                                                ], style={'color': '#636667', 'font-size': '18px'})
+                                            ]
+                                        ),
+                                        className="col-md-8"
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
         )
-        for i in range(n)
-    ]
+
+    # Generate cards for recommended movies
     list_recommendations = user_recommends(userid)
-    new_recommendation_cards = [
-        dbc.Card(
-            className="mb-3",  # Added margin bottom class
-            style={"height": '250px', "maxWidth": "470px", "backgroundColor": "#1f1f29", "borderRadius": "10px",
-                   **(card_margin_right if i < 2 else {})},  # Added border radius and right margin
-            children=[
-                dbc.CardBody(
-                    [
-                        html.Div(
-                            className="g-0 d-flex",
-                            children=[
-                                dbc.Col(
-                                    html.Img(
-                                        src="/assets/coco.jpg",
-                                        className="img-fluid rounded-start",
-
+    new_recommendation_cards = []
+    for i in range(k):
+        poster_url = scrape_movie_poster(list_recommendations[i][5])  # Fetch poster URL dynamically
+        new_recommendation_cards.append(
+            dbc.Card(
+                className="mb-3",
+                style={"height": '250px', "maxWidth": "470px", "backgroundColor": "#1f1f29", "borderRadius": "10px",
+                       **(card_margin_right if i < 2 else {})},
+                children=[
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                className="g-0 d-flex",
+                                children=[
+                                    dbc.Col(
+                                        html.Img(
+                                            src=poster_url,  # Use dynamically fetched poster URL
+                                            className="img-fluid rounded-start",
+                                        ),
+                                        className="col-md-4"
                                     ),
-                                    className="col-md-4"
-                                ),
-                                dbc.Col(
-                                    dbc.CardBody(
-                                        [
-                                            html.H4(
-                                                list_recommendations[5],
-                                                className="card-title mb-3",
-                                                style={"color": "white", "white-space": "pre-wrap"}
-
-                                            ),
-                                            html.P([
-                                                list_recommendations[6]
-                                            ], style={'color': '#636667', 'font-size': '18px'})
-                                        ]
-                                    ),
-                                    className="col-md-8"
-                                )
-                            ]
-                        )
-                    ]
-                )
-            ]
+                                    dbc.Col(
+                                        dbc.CardBody(
+                                            [
+                                                html.H4(
+                                                    list_recommendations[i][5],
+                                                    className="card-title mb-3",
+                                                    style={"color": "white", "white-space": "pre-wrap"}
+                                                ),
+                                                html.P([
+                                                    list_recommendations[i][6]
+                                                ], style={'color': '#636667', 'font-size': '18px'})
+                                            ]
+                                        ),
+                                        className="col-md-8"
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
         )
-        for i in range(k)
-    ]
 
     return new_recommendation_cards, new_watchlist_cards
