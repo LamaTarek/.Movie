@@ -1,0 +1,103 @@
+/* assets/style.css */
+
+.homeLayout {
+    margin-top: 100px;
+}
+.dash-button {
+    transition: background-color 0.3s ease, border-radius 0.3s ease;
+}
+.arrow-button {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+.arrow-button:hover {
+    color: #6A0000; /* Color when hovered over */
+}
+.dash-button:hover {
+    background-color: #6A0000 !important;
+    color: white !important;
+    border-radius: 6px;
+}
+.watchlist-scrollable {
+    overflow-x: auto; /* Enable horizontal scrolling */
+    white-space: nowrap; /* Prevent wrapping of cards */
+}
+
+.card {
+    display: inline-block; /* Display cards inline */
+    border-radius: 10px; /* Add border radius to the cards */
+    background-color: #1f1f29; /* Set background color of the cards */
+    margin-right: 20px; /* Add margin right to separate the cards */
+    color: white; /* Set text color to white */
+}
+
+.card-img {
+    max-width: 100%; /* Make the card image responsive */
+    height: auto; /* Ensure the aspect ratio of the image is maintained */
+
+}
+
+.card-body {
+    padding: 1rem; /* Add padding to the card body */
+}
+
+.card-title {
+    color: white; /* Set text color to white */
+
+}
+
+.card-text {
+    color: white; /* Set text color to white */
+}
+
+.card-text-muted {
+    color: #6c757d; /* Set muted text color */
+}
+
+.show-more-link {
+    color: white; /* Set link color to white */
+}
+
+
+.card-text {
+    color: white; /* Set text color to white */
+}
+
+.card-text-muted {
+    color: #6c757d; /* Set muted text color */
+}
+
+.show-more-link {
+    color: white; /* Set link color to white */
+}
+
+
+
+/* Styles for the scroll buttons */
+.scroll-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    color: #007bff;
+    cursor: pointer;
+}
+
+.scroll-button.left {
+    left: 10px;
+}
+
+.scroll-button.right {
+    right: 10px;
+}
+
+/* Styles for the show more link */
+.show-more-link {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+}
+
